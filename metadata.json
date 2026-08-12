@@ -1,0 +1,6 @@
+{
+  "name": "Automate IT Limited - Agreement Portal",
+  "description": "Agreement submission, management, and PDF document generation portal for educational institutions and Automate IT Limited.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

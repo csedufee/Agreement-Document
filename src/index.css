@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@media print {
+  @page {
+    size: legal portrait;
+    margin: 15mm;
+  }
+  
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .printable-document {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+.legal-page-document {
+  min-height: 355.6mm;
+  width: 100%;
+}

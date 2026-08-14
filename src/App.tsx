@@ -6,6 +6,7 @@ import { SuccessView } from './components/SuccessView';
 import { DocumentViewer } from './components/DocumentViewer';
 import { HelpModal } from './components/HelpModal';
 import { InstituteAgreementData } from './types';
+import { formatServiceChargeSummary } from './data/modules';
 import { Building2, Phone, PhoneCall, MessageCircle, Mail, MapPin, Eye, Edit3, Download, PlusCircle, CheckCircle2, Search } from 'lucide-react';
 
 export default function App() {
@@ -131,7 +132,7 @@ export default function App() {
                     <p><strong>Headmaster/Principal:</strong> {item.headName}</p>
                     <p><strong>Mobile:</strong> <span className="font-mono">{item.headMobile}</span></p>
                     <p><strong>Date:</strong> <span className="font-mono">{item.date}</span></p>
-                    <p><strong>Service Charge:</strong> <span className="text-emerald-700 font-bold font-mono">৳{item.calculatedServiceCharge}</span></p>
+                    <p><strong>Service Charge:</strong> <span className="text-emerald-700 font-bold font-mono">{formatServiceChargeSummary(item)}</span></p>
                   </div>
 
                   <div className="flex gap-2 pt-2">

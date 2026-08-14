@@ -340,10 +340,22 @@ export async function downloadElementAsPdf(
     patchWindowComputedStyle(window);
   }
 
+  // Wait for web fonts to load completely if possible
+  if (typeof document !== 'undefined' && document.fonts) {
+    try {
+      await document.fonts.ready;
+    } catch {
+      // ignore font loading errors
+    }
+  }
+
+  const docId = element.getAttribute('data-pdf-container');
+
   // Capture HTML element as Canvas with high scale
   const canvas = await html2canvas(element, {
     scale: 2,
     useCORS: true,
+    allowTaint: true,
     logging: false,
     backgroundColor: '#ffffff',
     windowWidth: 850,
@@ -360,20 +372,77 @@ export async function downloadElementAsPdf(
       if (clonedDoc.body) {
         clonedDoc.body.style.margin = '0';
         clonedDoc.body.style.padding = '0';
+        clonedDoc.body.style.backgroundColor = '#ffffff';
         clonedDoc.body.style.overflow = 'visible';
       }
 
-      // 2. Reset position of offscreen containers so html2canvas renders cleanly at top-left
-      const offscreenElements = clonedDoc.querySelectorAll('.pdf-render-offscreen, [data-pdf-container]');
-      offscreenElements.forEach((el) => {
-        const htmlEl = el as HTMLElement;
-        htmlEl.style.position = 'static';
-        htmlEl.style.top = '0';
-        htmlEl.style.left = '0';
-        htmlEl.style.transform = 'none';
-        htmlEl.style.margin = '0';
-        htmlEl.style.padding = '0';
-      });
+      // 2. Find target element in cloned document
+      let targetInClone: HTMLElement | null = null;
+      if (docId) {
+        targetInClone = clonedDoc.querySelector(`[data-pdf-container="${docId}"]`);
+      }
+      if (!targetInClone) {
+        targetInClone = clonedDoc.querySelector('.printable-document');
+      }
+
+      if (targetInClone) {
+        // Hide all sibling elements up the DOM tree to isolate targetInClone at top (0,0)
+        let parent = targetInClone.parentElement;
+        let child: HTMLElement = targetInClone;
+
+        while (parent && parent !== clonedDoc.body) {
+          Array.from(parent.children).forEach((sibling) => {
+            if (sibling !== child) {
+              (sibling as HTMLElement).style.display = 'none';
+            }
+          });
+
+          // Ensure container parent has static layout at top
+          parent.style.position = 'static';
+          parent.style.top = '0';
+          parent.style.left = '0';
+          parent.style.transform = 'none';
+          parent.style.margin = '0 auto';
+          parent.style.padding = '0';
+          parent.style.width = '850px';
+
+          child = parent;
+          parent = parent.parentElement;
+        }
+
+        if (clonedDoc.body) {
+          Array.from(clonedDoc.body.children).forEach((topChild) => {
+            if (topChild !== child) {
+              (topChild as HTMLElement).style.display = 'none';
+            }
+          });
+        }
+
+        // Style the target element
+        targetInClone.style.position = 'relative';
+        targetInClone.style.top = '0';
+        targetInClone.style.left = '0';
+        targetInClone.style.transform = 'none';
+        targetInClone.style.margin = '0 auto';
+        targetInClone.style.width = '850px';
+        targetInClone.style.maxWidth = '850px';
+        targetInClone.style.backgroundColor = '#ffffff';
+        targetInClone.style.border = 'none';
+        targetInClone.style.boxShadow = 'none';
+        targetInClone.style.outline = 'none';
+      } else {
+        // Fallback positioning reset
+        const offscreenElements = clonedDoc.querySelectorAll('.pdf-render-offscreen, [data-pdf-container]');
+        offscreenElements.forEach((el) => {
+          const htmlEl = el as HTMLElement;
+          htmlEl.style.position = 'static';
+          htmlEl.style.top = '0';
+          htmlEl.style.left = '0';
+          htmlEl.style.transform = 'none';
+          htmlEl.style.margin = '0';
+          htmlEl.style.padding = '0';
+        });
+      }
 
       // 3. Remove all outer borders, outlines and box shadows from document containers
       const printableDocs = clonedDoc.querySelectorAll('.printable-document, [data-pdf-container] > div');
@@ -416,19 +485,34 @@ export async function downloadElementAsPdf(
   const imgWidth = pdfWidth;
   const imgHeight = (canvas.height * pdfWidth) / canvas.width;
 
-  let heightLeft = imgHeight;
-  let position = 0;
+  // Single-page document check: if image height fits within 1 page (or slightly exceeds up to 15% margin overflow)
+  const isSinglePageFit = imgHeight <= pdfHeight * 1.15;
 
-  // Add first page
-  pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-  heightLeft -= pdfHeight;
+  if (imgHeight <= pdfHeight) {
+    // Fits naturally within 1 page - maintain exact original aspect ratio without vertical stretching!
+    pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+  } else if (isSinglePageFit && paperFormat === 'a4') {
+    // Slightly exceeds 1 page (up to 15%), scale down proportionally to fit on 1 page without any vertical/horizontal distortion
+    const scale = pdfHeight / imgHeight;
+    const scaledWidth = imgWidth * scale;
+    const scaledHeight = pdfHeight;
+    const xOffset = (pdfWidth - scaledWidth) / 2;
+    pdf.addImage(imgData, 'JPEG', xOffset, 0, scaledWidth, scaledHeight);
+  } else {
+    let heightLeft = imgHeight;
+    let position = 0;
 
-  // Handle multi-page documents if element height exceeds 1 page
-  while (heightLeft > 2) {
-    position = heightLeft - imgHeight;
-    pdf.addPage();
+    // Add first page
     pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
     heightLeft -= pdfHeight;
+
+    // Handle multi-page documents if element height exceeds 1 page
+    while (heightLeft > 3) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pdfHeight;
+    }
   }
 
   const pdfBlob = pdf.output('blob');
@@ -449,7 +533,7 @@ export async function downloadElementAsPdf(
 }
 
 /**
- * Downloads all 8 agreement documents as a ZIP package containing high quality PDFs
+ * Downloads selected agreement documents as a ZIP package containing high quality PDFs
  */
 export async function downloadAllDocumentsZip(
   data: InstituteAgreementData,
@@ -458,10 +542,16 @@ export async function downloadAllDocumentsZip(
 ): Promise<void> {
   const zip = new JSZip();
   const cleanInstName = (data.instituteName || 'Institute').replace(/[^a-zA-Z0-9_ -]/g, '').trim();
-  const total = DOCUMENT_LIST.length;
+  
+  // Filter docs if selectedDocuments is specified
+  const docsToProcess = (data.selectedDocuments && data.selectedDocuments.length > 0)
+    ? DOCUMENT_LIST.filter(d => data.selectedDocuments!.includes(d.id))
+    : DOCUMENT_LIST;
+
+  const total = docsToProcess.length;
 
   for (let i = 0; i < total; i++) {
-    const docInfo = DOCUMENT_LIST[i];
+    const docInfo = docsToProcess[i];
     const element = elementMap[docInfo.id];
 
     if (element) {
@@ -470,7 +560,7 @@ export async function downloadAllDocumentsZip(
       }
 
       try {
-        // Agreement uses 'legal' paper size, all other 7 documents use 'a4'
+        // Agreement uses 'legal' paper size, all other documents use 'a4'
         const paperFormat: 'legal' | 'a4' = docInfo.id === 'agreement' ? 'legal' : 'a4';
         const pdfBlob = await downloadElementAsPdf(element, '', paperFormat);
         const sanitizedDocName = `${i + 1}_${docInfo.title.replace(/\s+/g, '_')}.pdf`;
@@ -482,7 +572,7 @@ export async function downloadAllDocumentsZip(
   }
 
   const zipContent = await zip.generateAsync({ type: 'blob' });
-  const zipFileName = `${cleanInstName}_Agreement_Documents_Package.zip`;
+  const zipFileName = `${cleanInstName}_Selected_Documents_Package.zip`;
 
   const link = document.createElement('a');
   const url = URL.createObjectURL(zipContent);

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { CheckCircle, Download, FileText, ArrowRight, RefreshCw, Sparkles, Building, Edit3 } from 'lucide-react';
 import { InstituteAgreementData } from '../types';
 import { DocumentViewer } from './DocumentViewer';
+import { formatServiceChargeSummary } from '../data/modules';
 
 interface Props {
   data: InstituteAgreementData;
@@ -31,7 +32,7 @@ export const SuccessView: React.FC<Props> = ({ data, onNewForm, onUpdateInfo }) 
             </h2>
 
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              Based on your provided information, 8 official documents (Agreement, MEF Form, Authorization Letter, Web Portal, PayBill, Dynamic Charging, Board Resolution, Declaration) have been generated.
+              Based on your provided information, all official documents have been generated.
             </p>
           </div>
 
@@ -42,7 +43,7 @@ export const SuccessView: React.FC<Props> = ({ data, onNewForm, onUpdateInfo }) 
               <div><span className="text-slate-500 font-medium">Mobile Number:</span> <strong className="text-slate-900 font-mono">{data.headMobile}</strong></div>
               <div><span className="text-slate-500 font-medium">Agreement Date:</span> <strong className="text-slate-900 font-mono">{data.date}</strong></div>
               <div><span className="text-slate-500 font-medium">Agreement Tenure:</span> <strong className="text-slate-900 font-mono">{data.expiryDate || '07/08/2027'}</strong></div>
-              <div><span className="text-slate-500 font-medium">Calculated Service Charge:</span> <strong className="text-emerald-700 font-bold font-mono">৳{data.calculatedServiceCharge}</strong></div>
+              <div><span className="text-slate-500 font-medium">Service Charge:</span> <strong className="text-emerald-700 font-bold font-mono">{formatServiceChargeSummary(data)}</strong></div>
               <div><span className="text-slate-500 font-medium">Website:</span> <strong className="text-blue-700 font-mono">{data.websiteAddress}</strong></div>
             </div>
           </div>
@@ -62,7 +63,7 @@ export const SuccessView: React.FC<Props> = ({ data, onNewForm, onUpdateInfo }) 
               className="w-full sm:w-auto bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-6 py-3.5 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95"
             >
               <Edit3 className="w-4 h-4" />
-              <span>Update Information / তথ্য আপডেট করুন</span>
+              <span>Update Information</span>
             </button>
 
             <button

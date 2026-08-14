@@ -1,14 +1,47 @@
 @import "tailwindcss";
 
+@layer base {
+  body {
+    font-family: 'Google Sans', 'Roboto', 'Noto Sans Bengali', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Custom Typography for Official Documents */
+.font-sans {
+  font-family: 'Google Sans', 'Roboto', 'Noto Sans Bengali', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
+
+.font-serif {
+  font-family: 'Google Sans', 'Roboto', 'Noto Sans Bengali', Georgia, serif !important;
+}
+
+.font-mono {
+  font-family: 'Roboto Mono', 'ui-monospace', SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+}
+
+.printable-document {
+  font-family: 'Google Sans', 'Roboto', 'Noto Sans Bengali', sans-serif;
+  color: #000000;
+  line-height: 1.6;
+}
+
+.printable-document.font-serif {
+  font-family: 'Google Sans', 'Roboto', 'Noto Sans Bengali', sans-serif !important;
+}
+
 @media print {
   @page {
-    size: legal portrait;
-    margin: 15mm;
+    size: A4 portrait;
+    margin: 10mm;
   }
   
   body {
     background-color: #ffffff !important;
     color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .no-print {
@@ -18,10 +51,17 @@
   .printable-document {
     border: none !important;
     box-shadow: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
+  }
+
+  .single-page-doc {
+    page-break-before: avoid !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    max-height: 277mm !important;
+    box-sizing: border-box !important;
   }
 }
 
@@ -29,3 +69,11 @@
   min-height: 355.6mm;
   width: 100%;
 }
+
+.printable-document table th,
+.printable-document table td {
+  text-align: left !important;
+  vertical-align: middle !important;
+}
+
+
